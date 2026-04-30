@@ -217,8 +217,8 @@ def plot_alpha_dists(csv_path: Path, max_alpha: int, resolution: int,
             continue
 
         if grid_x1 is None:
-            if bm.num_sites != 2:
-                print(f"  Skipping: dataset has {bm.num_sites} input features "
+            if bm.num_sites != 3:
+                print(f"  Skipping: dataset has {bm.num_sites-1} input features "
                       f"(distribution plots are only supported for 2D toy data).")
                 del bm
                 return
