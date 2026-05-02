@@ -360,14 +360,16 @@ class RobustnessEvaluation:
         born.to(device)
         born.classifier.eval()
 
+        range_size = born.input_range[1] - born.input_range[0]
         strength_acc = []
 
         for strength in self.strengths:
+            abs_strength = strength * range_size
             batch_acc = []
 
             for naturals, labels in loader:
                 ad_examples = self.generate(
-                    born, naturals, labels, strength, device
+                    born, naturals, labels, abs_strength, device
                 )
 
                 with torch.no_grad():

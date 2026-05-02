@@ -3,14 +3,14 @@ experiment: seed_sweep
 
 defaults:
   - override /born: legendre/d10D6
-  - override /dataset: 2Dtoy/moons_small
+  - override /dataset: 2Dtoy/moons_4k
   - override /trainer/classification: null
   - override /trainer/adversarial: pgd_at
   - override /trainer/ganstyle: null
   - override /trainer/generative: null
   - override /tracking: online
 
-model_path: outputs/seed_sweep/cls/legendre/d10D6/moons_small_2804/3/models/cls
+model_path: outputs/seed_sweep/cls/legendre/d10D6/moons_4k_2804/3/models/cls
 
 dataset:
   split_seed: 11
@@ -21,7 +21,7 @@ tracking:
   seed: 42
   evasion:
     method: "PGD"
-    norm: 2
+    norm: inf
     criterion:
       name: "negative log-likelihood"
       kwargs:
@@ -33,17 +33,17 @@ tracking:
 
 trainer:
   adversarial:
-    max_epoch: 1000
+    max_epoch: 300
     batch_size: 256
     method: "pgd_at"
     stop_crit: "rob"
-    patience: 1000
+    patience: 300
     watch_freq: 0
     metrics: {"rob": 1, "clsloss": null, "acc": null}
 
     evasion:
       method: "PGD"
-      norm: 2
+      norm: inf
       criterion:
         name: "negative log-likelihood"
         kwargs:
@@ -55,7 +55,7 @@ trainer:
 
     curriculum: true
     curriculum_start: 0.01
-    curriculum_end_epoch: 80
+    curriculum_end_epoch: 200
 
     save: true
     auto_stack: true
@@ -63,11 +63,11 @@ trainer:
 
     optimizer:
       kwargs:
-        lr: 0.0012173648175664744                  # FILL FROM HPO
-        weight_decay: 2.611550600936826e-06        # FILL FROM HPO
-    clean_weight: 0.5140354337534527            # FILL FROM HPO
+        lr: ???                                    # FILL FROM HPO
+        weight_decay: ???                          # FILL FROM HPO
+    clean_weight: ???                              # FILL FROM HPO
 
 hydra:
   sweeper:
     params:
-      tracking.seed: range(1,21)
+      tracking.seed: range(1,9)

@@ -64,7 +64,7 @@ class EvasionConfig:
     method: str = "FGM",
     norm: int | str = "inf",
     criterion: CriterionConfig = CriterionConfig(name="nll", kwargs=None)
-    strengths: list = field(default_factory=lambda: [0.1, 0.3]) # not relative, default for dataspaces [0,1]^n
+    strengths: list = field(default_factory=lambda: [0.1, 0.3]) # relative fraction of input range; 0.1 = 10% of embedding range
     # PGD-specific parameters (ignored for FGM)
     num_steps: int = 10
     step_size: float | None = None  # defaults to 2.5 * strength / num_steps if None

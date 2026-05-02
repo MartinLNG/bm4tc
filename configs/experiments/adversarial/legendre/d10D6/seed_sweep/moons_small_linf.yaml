@@ -21,7 +21,7 @@ tracking:
   seed: 42
   evasion:
     method: "PGD"
-    norm: 2
+    norm: inf
     criterion:
       name: "negative log-likelihood"
       kwargs:
@@ -43,7 +43,7 @@ trainer:
 
     evasion:
       method: "PGD"
-      norm: 2
+      norm: inf
       criterion:
         name: "negative log-likelihood"
         kwargs:
@@ -63,9 +63,9 @@ trainer:
 
     optimizer:
       kwargs:
-        lr: 0.0012173648175664744                  # FILL FROM HPO
-        weight_decay: 2.611550600936826e-06        # FILL FROM HPO
-    clean_weight: 0.5140354337534527            # FILL FROM HPO
+        lr: ???                                    # FILL FROM HPO
+        weight_decay: ???                          # FILL FROM HPO
+    clean_weight: ???                              # FILL FROM HPO
 
 hydra:
   sweeper:

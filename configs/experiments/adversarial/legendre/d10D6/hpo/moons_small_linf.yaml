@@ -1,5 +1,5 @@
 # @package _global_
-experiment: seed_sweep
+experiment: hpo
 
 defaults:
   - override /born: legendre/d10D6
@@ -9,8 +9,9 @@ defaults:
   - override /trainer/ganstyle: null
   - override /trainer/generative: null
   - override /tracking: online
+  - override /hydra/sweeper: optuna
 
-model_path: outputs/seed_sweep/cls/legendre/d10D6/moons_small_2804/3/models/cls
+model_path: outputs/seed_sweep/cls/legendre/d10D6/moons_small_1203/17/models/moons_small_pre_mps_bd6_legendre10_300adamlr0.027871132194640304wd1.3175384924462444e-05
 
 dataset:
   split_seed: 11
@@ -21,7 +22,7 @@ tracking:
   seed: 42
   evasion:
     method: "PGD"
-    norm: 2
+    norm: inf
     criterion:
       name: "negative log-likelihood"
       kwargs:
@@ -39,11 +40,11 @@ trainer:
     stop_crit: "rob"
     patience: 1000
     watch_freq: 0
-    metrics: {"rob": 1, "clsloss": null, "acc": null}
+    metrics: {"rob": 1, "acc": 1}
 
     evasion:
       method: "PGD"
-      norm: 2
+      norm: inf
       criterion:
         name: "negative log-likelihood"
         kwargs:
@@ -57,17 +58,22 @@ trainer:
     curriculum_start: 0.01
     curriculum_end_epoch: 80
 
-    save: true
+    save: false
     auto_stack: true
     auto_unbind: false
 
-    optimizer:
-      kwargs:
-        lr: 0.0012173648175664744                  # FILL FROM HPO
-        weight_decay: 2.611550600936826e-06        # FILL FROM HPO
-    clean_weight: 0.5140354337534527            # FILL FROM HPO
-
 hydra:
   sweeper:
+    storage: null
+    study_name: "${experiment}_${dataset.name}"
+    sampler:
+      _target_: optuna.samplers.TPESampler
+      seed: 42
+      n_startup_trials: 10
+    direction: minimize
+    n_trials: 30
+    n_jobs: 1
     params:
-      tracking.seed: range(1,21)
+      trainer.adversarial.optimizer.kwargs.lr: tag(log, interval(1e-5, 1e-2))
+      trainer.adversarial.optimizer.kwargs.weight_decay: tag(log, interval(1e-9, 1e-1))
+      trainer.adversarial.clean_weight: interval(0.2, 1.0)

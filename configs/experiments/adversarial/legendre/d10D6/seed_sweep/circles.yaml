@@ -26,7 +26,7 @@ tracking:
       name: "negative log-likelihood"
       kwargs:
         eps: 1e-8
-    strengths: [0.15]
+    strengths: [0.1]
     num_steps: 10
     step_size: null
     random_start: true
@@ -48,7 +48,7 @@ trainer:
         name: "negative log-likelihood"
         kwargs:
           eps: 1e-8
-      strengths: [0.15]
+      strengths: [0.1]
       num_steps: 10
       step_size: null
       random_start: true

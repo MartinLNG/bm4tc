@@ -114,8 +114,10 @@ class Trainer:
         else:
             raise ValueError(f"Unknown attack method: {evasion.method}")
 
-        # Use first strength as default epsilon
-        self.base_epsilon = evasion.strengths[0] if evasion.strengths else 0.1
+        range_size = self.bornmachine.input_range[1] - self.bornmachine.input_range[0]
+        self.range_size = range_size
+        self.base_epsilon = (evasion.strengths[0] if evasion.strengths else 0.1) * range_size
+        self._abs_curriculum_start = self.train_cfg.curriculum_start * range_size
 
     def _best_perf_factory(self, metrics: Dict[str, int]):
         """Initialize best performance tracking dict."""
@@ -150,7 +152,7 @@ class Trainer:
         end_epoch = self.train_cfg.curriculum_end_epoch or self.train_cfg.max_epoch
         progress = min(1.0, epoch / end_epoch)
 
-        start_eps = self.train_cfg.curriculum_start
+        start_eps = self._abs_curriculum_start
         return start_eps + progress * (self.base_epsilon - start_eps)
 
     def _generate_adversarial(
