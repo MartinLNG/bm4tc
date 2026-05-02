@@ -40,6 +40,7 @@ from analysis.visualize.distributions import (
     _overlay_data,
     _save_fig,
     _infer_regime,
+    DECISION_BOUNDARY_CMAP,
 )
 
 OUTPUTS_ROOT = PROJECT_ROOT / "analysis" / "outputs" / "alpha_curve"
@@ -97,15 +98,17 @@ def _load_bm(run_path: str, device: torch.device):
 # Per-axis rendering
 # ---------------------------------------------------------------------------
 
-def _render_pcx(ax, conditional, grid_x1, grid_x2, input_range,
-                train_data=None, train_labels=None, num_classes=None):
-    lo, hi = input_range
-    res    = grid_x1.shape[0]
-    prob1  = conditional.numpy()[:, 1].reshape(res, res)
-    vmin   = float(np.percentile(prob1, 2))
-    vmax   = float(np.percentile(prob1, 98))
-    ax.pcolormesh(grid_x1, grid_x2, prob1, cmap="viridis",
-                  shading="auto", vmin=vmin, vmax=vmax)
+def _render_decision_boundary(ax, conditional, grid_x1, grid_x2, input_range,
+                              train_data=None, train_labels=None, num_classes=None,
+                              eps=0.05):
+    lo, hi  = input_range
+    res     = grid_x1.shape[0]
+    prob1   = conditional.numpy()[:, 1].reshape(res, res)
+    display = prob1.copy().astype(float)
+    display[(prob1 >= 0.5 - eps) & (prob1 <= 0.5 + eps)] = np.nan
+    ax.set_facecolor("white")
+    ax.pcolormesh(grid_x1, grid_x2, display, cmap=DECISION_BOUNDARY_CMAP,
+                  shading="auto", vmin=0.0, vmax=1.0)
     ax.set_xlim(lo, hi)
     ax.set_ylim(lo, hi)
     ax.set_aspect("equal")
@@ -125,7 +128,7 @@ def _render_px(ax, joint, grid_x1, grid_x2, input_range,
     marginal  = (joint_np / class_max).sum(axis=1).reshape(res, res)
     vmin      = float(np.percentile(marginal, 2))
     vmax      = float(np.percentile(marginal, 98))
-    ax.pcolormesh(grid_x1, grid_x2, marginal, cmap="viridis",
+    ax.pcolormesh(grid_x1, grid_x2, marginal, cmap="Purples",
                   shading="auto", vmin=vmin, vmax=vmax)
     ax.set_xlim(lo, hi)
     ax.set_ylim(lo, hi)
@@ -158,18 +161,15 @@ def _assemble_figures(panels, grid_x1, grid_x2, input_range, num_classes):
         tl = train_labels if show_data else None
         nc = num_classes  if show_data else None
 
-        _render_pcx(ax_comb[0, col], conditional, grid_x1, grid_x2, input_range, td, tl, nc)
-        _render_px( ax_comb[1, col], joint,       grid_x1, grid_x2, input_range, td, tl, nc)
-        _render_pcx(ax_pcx[0, col],  conditional, grid_x1, grid_x2, input_range, td, tl, nc)
-        _render_px( ax_px[0, col],   joint,       grid_x1, grid_x2, input_range, td, tl, nc)
+        _render_decision_boundary(ax_comb[0, col], conditional, grid_x1, grid_x2, input_range, td, tl, nc)
+        _render_px(               ax_comb[1, col], joint,       grid_x1, grid_x2, input_range, td, tl, nc)
+        _render_decision_boundary(ax_pcx[0, col],  conditional, grid_x1, grid_x2, input_range, td, tl, nc)
+        _render_px(               ax_px[0, col],   joint,       grid_x1, grid_x2, input_range, td, tl, nc)
 
         title = f"α = {alpha:.2g}"
-        ax_comb[0, col].set_title(title)
-        ax_pcx[0,  col].set_title(title)
-        ax_px[0,   col].set_title(title)
-
-    ax_comb[0, 0].set_ylabel("p(c|x)", fontsize=11)
-    ax_comb[1, 0].set_ylabel("p(x)",   fontsize=11)
+        ax_comb[0, col].set_title(title, fontsize=14)
+        ax_pcx[0,  col].set_title(title, fontsize=14)
+        ax_px[0,   col].set_title(title, fontsize=14)
 
     for fig in (fig_comb, fig_pcx, fig_px):
         fig.tight_layout()
