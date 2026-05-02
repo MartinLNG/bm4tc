@@ -303,6 +303,10 @@ def evaluate_run(
 
             for (pct, eps), rate in uq_results.detection_rates.items():
                 results[f"eval/uq_detection/{pct}pct/{eps}"] = rate
+            for (pct, eps), rate in uq_results.err_rate_detected.items():
+                results[f"eval/uq_det_err_detected/{pct}pct/{eps}"] = rate
+            for (pct, eps), rate in uq_results.err_rate_passed.items():
+                results[f"eval/uq_det_err_passed/{pct}pct/{eps}"] = rate
 
             for (eps, radius), metrics in uq_results.purification_results.items():
                 results[f"eval/uq_purify_acc/{eps}/{radius}"] = metrics.accuracy_after_purify
@@ -339,6 +343,10 @@ def evaluate_run(
 
             for (pct, eps), rate in joint_uq_results.detection_rates.items():
                 results[f"eval/uq_joint_detection/{pct}pct/{eps}"] = rate
+            for (pct, eps), rate in joint_uq_results.err_rate_detected.items():
+                results[f"eval/uq_joint_det_err_detected/{pct}pct/{eps}"] = rate
+            for (pct, eps), rate in joint_uq_results.err_rate_passed.items():
+                results[f"eval/uq_joint_det_err_passed/{pct}pct/{eps}"] = rate
 
             for (eps, radius), metrics in joint_uq_results.purification_results.items():
                 results[f"eval/uq_joint_purify_acc/{eps}/{radius}"] = metrics.accuracy_after_purify
@@ -504,6 +512,10 @@ def evaluate_pretrained_model(
                 results[f"eval/uq_adv_acc/{eps}"] = acc
             for (pct, eps), rate in uq_results.detection_rates.items():
                 results[f"eval/uq_detection/{pct}pct/{eps}"] = rate
+            for (pct, eps), rate in uq_results.err_rate_detected.items():
+                results[f"eval/uq_det_err_detected/{pct}pct/{eps}"] = rate
+            for (pct, eps), rate in uq_results.err_rate_passed.items():
+                results[f"eval/uq_det_err_passed/{pct}pct/{eps}"] = rate
             for (eps, radius), m in uq_results.purification_results.items():
                 results[f"eval/uq_purify_acc/{eps}/{radius}"] = m.accuracy_after_purify
                 results[f"eval/uq_purify_recovery/{eps}/{radius}"] = m.recovery_rate
@@ -693,6 +705,10 @@ def evaluate_model_at_path(
 
             for (pct, eps), rate in uq_results.detection_rates.items():
                 results[f"eval/uq_detection/{pct}pct/{eps}"] = rate
+            for (pct, eps), rate in uq_results.err_rate_detected.items():
+                results[f"eval/uq_det_err_detected/{pct}pct/{eps}"] = rate
+            for (pct, eps), rate in uq_results.err_rate_passed.items():
+                results[f"eval/uq_det_err_passed/{pct}pct/{eps}"] = rate
 
             for (eps, radius), metrics in uq_results.purification_results.items():
                 results[f"eval/uq_purify_acc/{eps}/{radius}"] = metrics.accuracy_after_purify

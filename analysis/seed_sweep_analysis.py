@@ -367,6 +367,8 @@ UQ_ADV_ACC_COLS = []
 UQ_PURIFY_ACC_COLS = []
 UQ_PURIFY_RECOVERY_COLS = []
 UQ_DETECTION_COLS = []
+UQ_DET_ERR_DETECTED_COLS = []
+UQ_DET_ERR_PASSED_COLS = []
 GIBBS_PURIFY_ACC_COLS = []
 UQ_CLEAN_PURIFY_ACC_COLS = []
 GIBBS_CLEAN_PURIFY_ACC_COLS = []
@@ -375,6 +377,8 @@ if COMPUTE_UQ and not df.empty:
     UQ_PURIFY_ACC_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_purify_acc/"))
     UQ_PURIFY_RECOVERY_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_purify_recovery/"))
     UQ_DETECTION_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_detection/"))
+    UQ_DET_ERR_DETECTED_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_det_err_detected/"))
+    UQ_DET_ERR_PASSED_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_det_err_passed/"))
     GIBBS_PURIFY_ACC_COLS = sorted(c for c in df.columns if c.startswith("eval/gibbs_purify_acc/"))
     UQ_CLEAN_PURIFY_ACC_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_clean_purify_acc/"))
     GIBBS_CLEAN_PURIFY_ACC_COLS = sorted(c for c in df.columns if c.startswith("eval/gibbs_clean_purify_acc/"))
@@ -382,11 +386,15 @@ if COMPUTE_UQ and not df.empty:
 JOINT_ADV_ACC_COLS = []
 JOINT_PURIFY_ACC_COLS = []
 JOINT_DETECTION_COLS = []
+JOINT_DET_ERR_DETECTED_COLS = []
+JOINT_DET_ERR_PASSED_COLS = []
 GIBBS_JOINT_PURIFY_ACC_COLS = []
 if COMPUTE_JOINT_ATTACK and COMPUTE_UQ and not df.empty:
     JOINT_ADV_ACC_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_joint_adv_acc/"))
     JOINT_PURIFY_ACC_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_joint_purify_acc/"))
     JOINT_DETECTION_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_joint_detection/"))
+    JOINT_DET_ERR_DETECTED_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_joint_det_err_detected/"))
+    JOINT_DET_ERR_PASSED_COLS = sorted(c for c in df.columns if c.startswith("eval/uq_joint_det_err_passed/"))
     GIBBS_JOINT_PURIFY_ACC_COLS = sorted(c for c in df.columns if c.startswith("eval/gibbs_joint_purify_acc/"))
 
 print(f"TEST_ACC:     {TEST_ACC}")
@@ -584,6 +592,18 @@ if not df.empty and COMPUTE_UQ and UQ_PURIFY_ACC_COLS:
             pct_str, eps = parts[-2], parts[-1]
             vals = df[col].dropna()
             print(f"  tau={pct_str}, eps={eps}: {vals.mean():.4f} +/- {vals.std():.4f}")
+    if UQ_DET_ERR_DETECTED_COLS or UQ_DET_ERR_PASSED_COLS:
+        print(f"\nUQ Detection Conditional Error Rates (mean +/- std across runs):\n")
+        for col in UQ_DET_ERR_DETECTED_COLS:
+            parts = col.split("/")
+            pct_str, eps = parts[-2], parts[-1]
+            vals = df[col].dropna()
+            print(f"  err_if_detected (tau={pct_str}, eps={eps}): {vals.mean():.4f} +/- {vals.std():.4f}")
+        for col in UQ_DET_ERR_PASSED_COLS:
+            parts = col.split("/")
+            pct_str, eps = parts[-2], parts[-1]
+            vals = df[col].dropna()
+            print(f"  err_if_passed   (tau={pct_str}, eps={eps}): {vals.mean():.4f} +/- {vals.std():.4f}")
 
 # %% [markdown]
 # ### 3i. Summary Statistics Table (test)

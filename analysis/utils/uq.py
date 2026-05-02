@@ -178,6 +178,8 @@ class UQResults:
     clean_gibbs_purification_results: Dict[int, PurificationMetrics] = field(
         default_factory=dict
     )
+    err_rate_detected: Dict[Tuple[float, float], float] = field(default_factory=dict)
+    err_rate_passed: Dict[Tuple[float, float], float] = field(default_factory=dict)
 
     def summary(self) -> str:
         """Return a formatted summary of UQ evaluation results."""
@@ -204,7 +206,14 @@ class UQResults:
 
         lines.extend(["", "--- Detection Rates ---"])
         for (pct, eps), rate in sorted(self.detection_rates.items()):
-            lines.append(f"  tau={pct}th pct, eps={eps}: {rate:.2%} detected")
+            err_det = self.err_rate_detected.get((pct, eps), float("nan"))
+            err_pas = self.err_rate_passed.get((pct, eps), float("nan"))
+            err_det_s = f"{err_det:.2%}" if not np.isnan(err_det) else "nan"
+            err_pas_s = f"{err_pas:.2%}" if not np.isnan(err_pas) else "nan"
+            lines.append(
+                f"  tau={pct}th pct, eps={eps}: {rate:.2%} detected, "
+                f"err_if_detected={err_det_s}, err_if_passed={err_pas_s}"
+            )
 
         lines.extend(["", "--- Purification Results ---"])
         for (eps, radius), metrics in sorted(self.purification_results.items()):
@@ -309,12 +318,15 @@ class UQEvaluation:
         adv_log_px: Dict[float, np.ndarray] = {}
         adv_accuracies: Dict[float, float] = {}
         detection_rates: Dict[Tuple[float, float], float] = {}
+        err_rate_detected: Dict[Tuple[float, float], float] = {}
+        err_rate_passed: Dict[Tuple[float, float], float] = {}
         # Store adversarial examples for purification
         adv_examples_cache: Dict[float, List[Tuple[torch.Tensor, torch.Tensor]]] = {}
 
         for eps in cfg.attack_strengths:
             logger.info(f"Generating adversarial examples (eps={eps})...")
             all_adv_log_px = []
+            all_adv_correct_list = []
             all_adv_correct = 0
             all_adv_total = 0
             adv_batches = []
@@ -332,7 +344,9 @@ class UQEvaluation:
                 with torch.no_grad():
                     adv_probs = born.class_probabilities(adv_data)
                     adv_preds = adv_probs.argmax(dim=1)
-                    all_adv_correct += (adv_preds == batch_labels).sum().item()
+                    correct_batch = adv_preds == batch_labels
+                    all_adv_correct += correct_batch.sum().item()
+                    all_adv_correct_list.append(correct_batch.cpu())
                     all_adv_total += len(batch_labels)
 
                     # Compute log p(x_adv)
@@ -345,16 +359,24 @@ class UQEvaluation:
             adv_log_px[eps] = adv_log_px_arr
             adv_accuracies[eps] = all_adv_correct / all_adv_total
             adv_examples_cache[eps] = adv_batches
+            misclf_arr = ~torch.cat(all_adv_correct_list).numpy()
 
             logger.info(
                 f"  eps={eps}: adv_acc={adv_accuracies[eps]:.4f}, "
                 f"mean log p(x_adv)={adv_log_px_arr.mean():.2f}"
             )
 
-            # Detection rates at each threshold
+            # Detection rates and conditional error rates at each threshold
             for pct, tau in thresholds.items():
-                detected = (adv_log_px_arr < tau).mean()
-                detection_rates[(pct, eps)] = float(detected)
+                det_mask = adv_log_px_arr < tau
+                pas_mask = ~det_mask
+                detection_rates[(pct, eps)] = float(det_mask.mean())
+                err_rate_detected[(pct, eps)] = (
+                    float(misclf_arr[det_mask].mean()) if det_mask.any() else float("nan")
+                )
+                err_rate_passed[(pct, eps)] = (
+                    float(misclf_arr[pas_mask].mean()) if pas_mask.any() else float("nan")
+                )
 
         # 4. Purification
         purifier = LikelihoodPurification(
@@ -557,6 +579,8 @@ class UQEvaluation:
             adv_log_px=adv_log_px,
             adv_accuracies=adv_accuracies,
             detection_rates=detection_rates,
+            err_rate_detected=err_rate_detected,
+            err_rate_passed=err_rate_passed,
             purification_results=purification_results,
             gibbs_purification_results=gibbs_purification_results,
             clean_purification_results=clean_purification_results,

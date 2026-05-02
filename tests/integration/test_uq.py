@@ -55,6 +55,20 @@ def test_uq_results_gibbs_default_empty():
     assert results.gibbs_purification_results == {}
 
 
+def test_uq_results_new_det_fields_default_empty():
+    results = UQResults(
+        clean_log_px=np.array([-1.0]),
+        clean_accuracy=0.9,
+        thresholds={},
+        adv_log_px={},
+        adv_accuracies={},
+        detection_rates={},
+        purification_results={},
+    )
+    assert results.err_rate_detected == {}
+    assert results.err_rate_passed == {}
+
+
 def test_uq_results_summary_returns_string():
     results = UQResults(
         clean_log_px=np.array([-1.0, -2.0]),
@@ -175,3 +189,33 @@ def test_uq_gibbs_empty_when_disabled(born_machine, clean_loader):
     evaluator = UQEvaluation(cfg)
     results = evaluator.evaluate(born_machine, clean_loader, device="cpu")
     assert results.gibbs_purification_results == {}
+
+
+def test_uq_err_rate_detected_range(born_machine, clean_loader):
+    import math
+    cfg = UQConfig(
+        attack_strengths=[0.1],
+        radii=[0.1],
+        percentiles=[10],
+        attack_num_steps=2,
+        num_steps=2,
+    )
+    results = UQEvaluation(cfg).evaluate(born_machine, clean_loader, device="cpu")
+    assert len(results.err_rate_detected) > 0
+    for v in results.err_rate_detected.values():
+        assert math.isnan(v) or 0.0 <= v <= 1.0
+
+
+def test_uq_err_rate_passed_range(born_machine, clean_loader):
+    import math
+    cfg = UQConfig(
+        attack_strengths=[0.1],
+        radii=[0.1],
+        percentiles=[10],
+        attack_num_steps=2,
+        num_steps=2,
+    )
+    results = UQEvaluation(cfg).evaluate(born_machine, clean_loader, device="cpu")
+    assert len(results.err_rate_passed) > 0
+    for v in results.err_rate_passed.values():
+        assert math.isnan(v) or 0.0 <= v <= 1.0
