@@ -31,7 +31,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _MIXED = PROJECT_ROOT / "configs" / "experiments" / "generative" / "legendre" / "d10D6" / "alpha_curve_mixed"
 
-ALPHA_VALUES = [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0]
+ALPHA_VALUES = [0.0, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 8e-1, 1.0]
 
 # LR anchors sourced from HPO comments in each config file.
 # lr_cls: best LR from pure-classification HPO  (corresponds to alpha=0 in MixedNLL)
@@ -54,7 +54,7 @@ CONFIGS = {
     },
 }
 
-_ALPHA_CHOICE = "choice(0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0)"
+_ALPHA_CHOICE = "choice(0.0, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 5e-1, 8e-1, 1.0)"
 _ALPHA_KEY = "trainer.generative.criterion.kwargs.alpha"
 
 # Matches the alpha (or paired alpha+lr) line in sweeper.params.

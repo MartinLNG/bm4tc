@@ -37,6 +37,17 @@ GENLOSS_COL = "eval/test/genloss"
 DPI     = 150
 FIGSIZE = (11, 4.5)
 
+_ALPHA_TICKS  = [0, 1e-5, 1e-4, 1e-3, 1e-2, 5e-2, 0.1, 0.5, 0.8, 1.0]
+_ALPHA_LABELS = ['0', '1e-5', '1e-4', '1e-3', '1e-2', '5e-2', '0.1', '0.5', '0.8', '1']
+_SYMLOG_THRESH = 5e-6
+
+
+def _apply_alpha_xaxis(ax):
+    ax.set_xscale('symlog', linthresh=_SYMLOG_THRESH)
+    ax.set_xlim(0, 1)
+    ax.set_xticks(_ALPHA_TICKS)
+    ax.set_xticklabels(_ALPHA_LABELS, rotation=45, ha='right', fontsize=7)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -93,7 +104,7 @@ def plot_alpha_curve(csv_path: Path):
 
     ax_l.set_xlabel("α  (0 = cls,  1 = gen)")
     ax_l.set_ylabel("Accuracy")
-    ax_l.set_xlim(0, 1)
+    _apply_alpha_xaxis(ax_l)
     ax_l.set_ylim(0, 1)
     ax_l.legend(fontsize=8, loc="best")
     ax_l.grid(True, alpha=0.3)
@@ -120,7 +131,7 @@ def plot_alpha_curve(csv_path: Path):
     ax_r2.set_ylabel("Gen NLL", color="steelblue")
     ax_r.tick_params(axis="y", labelcolor="darkred")
     ax_r2.tick_params(axis="y", labelcolor="steelblue")
-    ax_r.set_xlim(0, 1)
+    _apply_alpha_xaxis(ax_r)
     ax_r.grid(True, alpha=0.3)
     ax_r.set_title("NLL Loss vs α")
 
