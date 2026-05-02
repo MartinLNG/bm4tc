@@ -67,16 +67,16 @@ def test_purify_partial_batch(born_machine):
     assert purified.shape == (n_samples, DATA_DIM)
 
 
-# --- Restricted Gibbs (cumulative_radius) ---
+# --- Restricted Gibbs (radius) ---
 
 def test_restricted_purify_output_shape(born_machine, x_adv):
-    purifier = GibbsPurification(num_bins=NUM_BINS, gibbs_batch_size=BATCH_SIZE, cumulative_radius=0.3)
+    purifier = GibbsPurification(num_bins=NUM_BINS, gibbs_batch_size=BATCH_SIZE, radius=0.3)
     purified, _ = purifier.purify(born_machine, x_adv, n_sweeps=1, device="cpu")
     assert purified.shape == (BATCH_SIZE, DATA_DIM)
 
 
 def test_restricted_purify_stays_in_input_range(born_machine, x_adv):
-    purifier = GibbsPurification(num_bins=NUM_BINS, gibbs_batch_size=BATCH_SIZE, cumulative_radius=0.3)
+    purifier = GibbsPurification(num_bins=NUM_BINS, gibbs_batch_size=BATCH_SIZE, radius=0.3)
     purified, _ = purifier.purify(born_machine, x_adv, n_sweeps=1, device="cpu")
     lo, hi = born_machine.input_range
     assert (purified >= lo - 1e-5).all()
@@ -84,23 +84,23 @@ def test_restricted_purify_stays_in_input_range(born_machine, x_adv):
 
 
 def test_restricted_purify_stays_near_start(born_machine):
-    # With a small radius and 1 sweep, purified values must be within radius of x_adv
+    # With a small radius, purified values must be within radius of x_adv
     # (per feature, since each feature is sampled from [x_adv_k ± delta]).
     torch.manual_seed(0)
     radius = 0.1
     x_adv = torch.full((BATCH_SIZE, DATA_DIM), 0.5)  # well inside input_range [0,1]
-    purifier = GibbsPurification(num_bins=NUM_BINS, gibbs_batch_size=BATCH_SIZE, cumulative_radius=radius)
+    purifier = GibbsPurification(num_bins=NUM_BINS, gibbs_batch_size=BATCH_SIZE, radius=radius)
     purified, _ = purifier.purify(born_machine, x_adv, n_sweeps=1, device="cpu")
     lo, hi = born_machine.input_range
-    per_sweep_delta = radius * (hi - lo) / 1  # n_sweeps=1
+    delta = radius * (hi - lo)
     # Each feature must stay within [x_adv_k - delta, x_adv_k + delta] ∩ [lo, hi]
-    lo_bound = (x_adv - per_sweep_delta).clamp(lo, hi)
-    hi_bound = (x_adv + per_sweep_delta).clamp(lo, hi)
+    lo_bound = (x_adv - delta).clamp(lo, hi)
+    hi_bound = (x_adv + delta).clamp(lo, hi)
     assert (purified >= lo_bound - 1e-5).all(), "Purified values below lower restriction bound"
     assert (purified <= hi_bound + 1e-5).all(), "Purified values above upper restriction bound"
 
 
 def test_restricted_purify_log_px_finite(born_machine, x_adv):
-    purifier = GibbsPurification(num_bins=NUM_BINS, gibbs_batch_size=BATCH_SIZE, cumulative_radius=0.3)
+    purifier = GibbsPurification(num_bins=NUM_BINS, gibbs_batch_size=BATCH_SIZE, radius=0.3)
     _, log_px = purifier.purify(born_machine, x_adv, n_sweeps=3, device="cpu")
     assert torch.isfinite(log_px).all()

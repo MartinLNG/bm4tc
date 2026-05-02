@@ -102,7 +102,7 @@ COMPUTE_DISTRIBUTIONS = False  # Set False (or pass --no-viz) to skip best-run d
 _STRENGTH_FRACTIONS = [0.05, 0.1, 0.15]
 EVASION_CONFIG = {
     "method": "PGD",
-    "norm": 2,
+    "norm": "inf",
     "num_steps": 40,
     "strengths": [s * _RANGE_SIZE for s in _STRENGTH_FRACTIONS],
 }
@@ -147,7 +147,7 @@ GIBBS_CONFIG = {
     "n_sweeps": [1, 3, 5],       # evaluate each sweep count independently
     "num_bins": 200,              # grid resolution over the input range
     "gibbs_batch_size": 8,        # samples processed per sequential() call
-    "cumulative_radius": 0.1,     # relative to input range (delta_abs = rel * (hi - lo)); None = unrestricted
+    "radius": 0.1,                # relative to input range (delta_abs = rel * (hi - lo)); None = unrestricted
 }
 
 # --- EVALUATION SETTINGS ---
@@ -226,7 +226,7 @@ if COMPUTE_UQ and UQ_CONFIG is not None and EVASION_CONFIG:
         _full_uq_config["gibbs_n_sweeps"] = GIBBS_CONFIG["n_sweeps"]
         _full_uq_config["gibbs_num_bins"] = GIBBS_CONFIG["num_bins"]
         _full_uq_config["gibbs_batch_size"] = GIBBS_CONFIG["gibbs_batch_size"]
-        _full_uq_config["gibbs_cumulative_radius"] = GIBBS_CONFIG.get("cumulative_radius")
+        _full_uq_config["gibbs_radius"] = GIBBS_CONFIG.get("radius")
 elif COMPUTE_GIBBS_PURIFICATION and not COMPUTE_UQ:
     print("WARNING: COMPUTE_GIBBS_PURIFICATION=True requires COMPUTE_UQ=True; skipping Gibbs.")
 

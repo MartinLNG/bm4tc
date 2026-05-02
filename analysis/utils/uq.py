@@ -62,7 +62,7 @@ class UQConfig:
     gibbs_n_sweeps: List[int] = field(default_factory=lambda: [1, 3, 5])
     gibbs_num_bins: int = 200
     gibbs_batch_size: int = 8
-    gibbs_cumulative_radius: Optional[float] = 0.1  # relative to input range; None = unrestricted
+    gibbs_radius: Optional[float] = 0.1  # relative to input range; None = unrestricted
 
 
 def compute_log_px(
@@ -488,7 +488,7 @@ class UQEvaluation:
             gibbs_purifier = GibbsPurification(
                 num_bins=cfg.gibbs_num_bins,
                 gibbs_batch_size=cfg.gibbs_batch_size,
-                cumulative_radius=cfg.gibbs_cumulative_radius,
+                radius=cfg.gibbs_radius,
             )
             for eps in cfg.attack_strengths:
                 all_adv = torch.cat([b[0] for b in adv_examples_cache[eps]])
