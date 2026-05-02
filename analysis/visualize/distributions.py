@@ -34,8 +34,23 @@ sys.path.insert(0, str(project_root))
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 import torch
 import logging
+
+_C0 = "#1F77B4"   # matplotlib default blue  (class 0)
+_C1 = "#FF7F0E"   # matplotlib default orange (class 1)
+
+DECISION_BOUNDARY_CMAP = LinearSegmentedColormap.from_list(
+    "bw_orange", [_C0, "white", _C1]
+)
+
+def _cls_cmap(class_idx: int):
+    """White → class-color sequential colormap."""
+    palette = [_C0, _C1]
+    return LinearSegmentedColormap.from_list(
+        f"cls{class_idx}", ["white", palette[class_idx % 2]]
+    )
 from analysis.utils import load_run_config, find_model_checkpoint
 from src.models import BornMachine  # must import before src.data to avoid circular import
 from src.data.handler import DataHandler
@@ -190,17 +205,18 @@ def compute_joint_probs(bm: BornMachine, grid_points, device, normalize=True, ba
 
 
 def _overlay_data(ax, data, labels, num_classes):
-    """High-contrast scatter overlay — solid opaque dots, white fill, dark edge."""
+    """Scatter overlay using matplotlib default class colors (C0=blue, C1=orange)."""
     if torch.is_tensor(data):
         data = data.detach().cpu().numpy()
     if torch.is_tensor(labels):
         labels = labels.detach().cpu().numpy()
+    palette = plt.rcParams['axes.prop_cycle'].by_key()['color']
     markers = ["o", "s", "^", "D", "v", "P", "*", "X"]
     for c in range(num_classes):
         mask = labels == c
         ax.scatter(data[mask, 0], data[mask, 1],
-                   s=6, alpha=0.9, c="white", edgecolors="black",
-                   linewidths=0.5, marker=markers[c % len(markers)], zorder=5)
+                   s=8, alpha=0.75, color=palette[c],
+                   linewidths=0, marker=markers[c % len(markers)], zorder=5)
 
 
 def _save_fig(fig, path):
@@ -210,21 +226,52 @@ def _save_fig(fig, path):
     logger.info(f"Saved {path}")
 
 
-def plot_class_conditional(
+def plot_decision_boundary(
     conditional, grid_x1, grid_x2,
     input_range=(0.0, 1.0),
     train_data=None, train_labels=None, num_classes=None,
-    cmap="viridis", save_path=None,
+    eps=0.05, save_path=None,
 ) -> plt.Figure:
-    """Square figure: p(c=1|x) heatmap, no title/labels, no colorbar."""
+    """Decision boundary: blue→white→orange diverging map, white band at 0.5 ± eps."""
     fig, ax = plt.subplots(figsize=(4, 4))
     lo, hi = input_range
     res = grid_x1.shape[0]
     prob1 = conditional.numpy()[:, 1].reshape(res, res)
-    vmin = float(np.percentile(prob1, 2))
-    vmax = float(np.percentile(prob1, 98))
-    pcm = ax.pcolormesh(grid_x1, grid_x2, prob1, cmap=cmap,
-                        shading="auto", vmin=vmin, vmax=vmax)
+
+    display = prob1.copy().astype(float)
+    display[(prob1 >= 0.5 - eps) & (prob1 <= 0.5 + eps)] = np.nan
+    ax.set_facecolor("white")
+
+    ax.pcolormesh(grid_x1, grid_x2, display, cmap=DECISION_BOUNDARY_CMAP,
+                  shading="auto", vmin=0.0, vmax=1.0)
+    ax.set_xlim(lo, hi)
+    ax.set_ylim(lo, hi)
+    ax.set_aspect("equal")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    if train_data is not None and num_classes is not None:
+        _overlay_data(ax, train_data, train_labels, num_classes)
+    fig.tight_layout()
+    if save_path:
+        _save_fig(fig, save_path)
+    return fig
+
+
+def plot_class_conditional(
+    conditional, grid_x1, grid_x2,
+    input_range=(0.0, 1.0),
+    train_data=None, train_labels=None, num_classes=None,
+    class_idx=1, cmap=None, save_path=None,
+) -> plt.Figure:
+    """Square figure: p(c=class_idx|x) heatmap, white→class-color, no colorbar."""
+    if cmap is None:
+        cmap = _cls_cmap(class_idx)
+    fig, ax = plt.subplots(figsize=(4, 4))
+    lo, hi = input_range
+    res = grid_x1.shape[0]
+    prob = conditional.numpy()[:, class_idx].reshape(res, res)
+    ax.pcolormesh(grid_x1, grid_x2, prob, cmap=cmap,
+                  shading="auto", vmin=0.0, vmax=1.0)
     ax.set_xlim(lo, hi)
     ax.set_ylim(lo, hi)
     ax.set_aspect("equal")
@@ -242,7 +289,7 @@ def plot_joint_marginal(
     joint, grid_x1, grid_x2,
     input_range=(0.0, 1.0),
     train_data=None, train_labels=None, num_classes=None,
-    cmap="viridis", save_path=None,
+    cmap="Purples", save_path=None,
 ) -> plt.Figure:
     """Square figure: class-normalized joint Σ_c p(x,c)/max_x p(x,c), no colorbar.
 
@@ -280,6 +327,7 @@ def visualize_from_run_dir(
     show_data=True,
     device="cpu",
     save_dir=None,
+    boundary_eps=0.05,
 ):
     """High-level convenience: load model + data and produce distribution plots.
 
@@ -336,6 +384,7 @@ def visualize_from_run_dir(
     # Determine save paths
     class_path = (Path(save_dir) / "best_class_dist.png") if save_dir else None
     joint_path = (Path(save_dir) / "best_joint.png") if save_dir else None
+    db_path    = (Path(save_dir) / "decision_boundary.png") if save_dir else None
 
     fig_cls = plot_class_conditional(
         conditional, grid_x1, grid_x2,
@@ -348,8 +397,14 @@ def visualize_from_run_dir(
         input_range=input_range,
         save_path=joint_path,
     )
+    fig_db = plot_decision_boundary(
+        conditional, grid_x1, grid_x2,
+        input_range=input_range,
+        train_data=train_data, train_labels=train_labels, num_classes=num_classes,
+        eps=boundary_eps, save_path=db_path,
+    )
 
-    return fig_cls, fig_jnt
+    return fig_cls, fig_jnt, fig_db
 
 
 # %% [markdown]
@@ -404,7 +459,7 @@ if __name__ == "__main__":
     cli_args = parser.parse_args()
 
     if cli_args.run is not None:
-        fig_cls, fig_jnt = visualize_from_run_dir(
+        fig_cls, fig_jnt, fig_db = visualize_from_run_dir(
             run_dir=cli_args.run,
             resolution=cli_args.resolution,
             normalize_joint=NORMALIZE_JOINT,
@@ -448,16 +503,25 @@ if __name__ == "__main__":
         if not save_dir.is_absolute():
             save_dir = project_root / save_dir
 
-        fig_cls, fig_jnt = plot_class_conditional(
+        num_classes = bm.out_dim if SHOW_DATA else None
+        fig_cls = plot_class_conditional(
             conditional, grid_x1, grid_x2,
             input_range=input_range,
             train_data=train_data, train_labels=train_labels,
-            num_classes=bm.out_dim if SHOW_DATA else None,
+            num_classes=num_classes,
             save_path=save_dir / "best_class_dist.png",
-        ), plot_joint_marginal(
+        )
+        fig_jnt = plot_joint_marginal(
             joint, grid_x1, grid_x2,
             input_range=input_range,
             save_path=save_dir / "best_joint.png",
+        )
+        fig_db = plot_decision_boundary(
+            conditional, grid_x1, grid_x2,
+            input_range=input_range,
+            train_data=train_data, train_labels=train_labels,
+            num_classes=num_classes,
+            save_path=save_dir / "decision_boundary.png",
         )
         plt.show()
 
